@@ -10,39 +10,355 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Baseline">
 <link rel="apple-touch-icon" href="/icons/icon-192.png">
-<style>
-  :root { --bg:#F1EFE8; --surface:#FCFBF7; --ink:#2C2C2A; --steel:#5F5E5A; --mid:#888780; --border:#D8D5C9; }
-  * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--ink); font-family:system-ui,sans-serif; font-size:15px; line-height:1.55; }
-  .wrap { max-width:460px; margin:0 auto; padding:22px 18px 40px; }
-  .mark { display:inline-block; width:9px; height:18px; background:var(--ink); border-radius:2px; vertical-align:-3px; margin-right:8px; }
-  h1 { font-size:22px; margin:0 0 6px; }
-  .sub { color:var(--steel); margin:0 0 20px; }
-  .card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:14px; }
-  .hint { background:#EFEAFE; border:1px solid #D8CEF6; color:#4B3FA8; border-radius:9px; padding:12px 14px; font-size:13px; margin-bottom:14px; }
-  button.primary { width:100%; border:none; background:var(--ink); color:#fff; font-size:15px; font-weight:500; padding:13px; border-radius:9px; cursor:pointer; }
-  .note { color:var(--mid); font-size:12px; margin-top:10px; }
-  a { color:var(--ink); }
-</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Space+Grotesk:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-  <div class="wrap">
-    <h1><span class="mark"></span>Baseline</h1>
-    <p class="sub">Eczema tracker. This is the app shell. Build the full UI from <code>docs/mockup.html</code>.</p>
-
-    <div class="hint" id="iosHint" hidden>
-      On iPhone, add Baseline to your Home Screen to enable reminders: tap Share, then Add to Home Screen, then open it from there.
+<div class="app">
+  <div class="topbar">
+    <div class="wordmark"><span class="mark"></span>Baseline</div>
+    <div class="topright">
+      <span class="topdate" id="topdate"></span>
+      <button class="gear" onclick="go('settings')" aria-label="Reminders and settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 0 0-2-1.2L14.2 2H9.8l-.4 2.5a7 7 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5A7 7 0 0 0 5 12a7 7 0 0 0 .1 1.2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 2 1.2l.4 2.5h4.4l.4-2.5a7 7 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5A7 7 0 0 0 19 12z"/></svg></button>
     </div>
-
-    <div class="card">
-      <p style="margin:0 0 12px; font-weight:500;">Daily reminders</p>
-      <p style="margin:0 0 14px; color:var(--steel); font-size:14px;">Rinvoq at 10:00 AM and a closeout at 9:30 PM, pushed from your server.</p>
-      <button class="primary" id="enableReminders">Enable reminders</button>
-      <p class="note" id="reminderStatus"></p>
-    </div>
-
-    <p class="note">Scaffold only. See README.md for setup and CLAUDE.md for build context.</p>
   </div>
-  <script src="/app.js"></script>
+
+  <div class="screens">
+
+    <!-- TODAY -->
+    <section class="screen active" id="s-today">
+      <h2 class="title">Today</h2>
+      <p class="sub">Log things as they happen. They roll up into your daily report.</p>
+
+      <div class="quickrow" style="grid-template-columns:repeat(6,1fr);">
+        <button class="qbtn" onclick="go('meals')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 3v7a3 3 0 0 0 6 0V3M7 3v18M20 3c-2 0-3 2-3 5s1 4 3 4v9"/></svg></span><span>Meal</span></button>
+        <button class="qbtn" onclick="openCreamPicker()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg></span><span>Cream</span></button>
+        <button class="qbtn" onclick="openMedPicker()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="8" width="18" height="8" rx="4"/><path d="M12 8v8"/></svg></span><span>Med</span></button>
+        <button class="qbtn" onclick="openSheet('itchSheet')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 12h3l2-6 4 13 2-7h7"/></svg></span><span>Itch</span></button>
+        <button class="qbtn" onclick="go('skin')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="7" width="18" height="13" rx="2"/><circle cx="12" cy="13.5" r="3.5"/><path d="M8 7l1.5-2.5h5L16 7"/></svg></span><span>Photo</span></button>
+        <button class="qbtn" onclick="openSheet('noteSheet')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/></svg></span><span>Note</span></button>
+      </div>
+
+      <div class="card sheet" id="itchSheet" hidden>
+        <div class="sheettitle">How is the itch right now?</div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;">
+          <span class="mini"><span id="itchSheetVal">5</span><span style="font-size:14px;color:var(--mid);">/10</span></span>
+          <span class="meta" id="itchSheetWord">Moderate</span>
+        </div>
+        <input type="range" id="itchRange" min="0" max="10" value="5">
+        <div class="scaleends"><span>None</span><span>Unbearable</span></div>
+        <div style="margin-top:14px;">
+          <div class="meta" style="margin-bottom:7px;">Areas (optional)</div>
+          <div class="chiprow" id="itchAreas">
+            <button class="sel" aria-pressed="false">Left elbow</button>
+            <button class="sel" aria-pressed="false">Neck</button>
+            <button class="sel" aria-pressed="false">Hands</button>
+          </div>
+        </div>
+        <div class="sheetbtns"><button class="primary" onclick="addItch()">Log itch</button><button class="ghost" onclick="closeSheet('itchSheet')">Cancel</button></div>
+      </div>
+
+      <div class="card sheet" id="noteSheet" hidden>
+        <div class="sheettitle">Quick note</div>
+        <textarea id="noteText" placeholder="A flare, a trigger you noticed, anything..."></textarea>
+        <div class="sheetbtns"><button class="primary" onclick="addNote()">Add note</button><button class="ghost" onclick="closeSheet('noteSheet')">Cancel</button></div>
+      </div>
+
+      <div class="card sheet" id="rinvoqSheet" hidden>
+        <div class="sheettitle">Log your Rinvoq?</div>
+        <p class="meta" style="margin:-4px 0 0;">Records the time you actually took it, not the reminder time.</p>
+        <div class="sheetbtns"><button class="primary" onclick="addRinvoq()">Log it, taken now</button><button class="ghost" onclick="closeSheet('rinvoqSheet')">Not yet</button></div>
+      </div>
+
+      <div class="card sheet" id="creamPicker" hidden>
+        <div class="sheettitle">Which cream did you apply?</div>
+        <div id="creamPickerList"></div>
+        <div class="sheetbtns"><button class="ghost" onclick="closeSheet('creamPicker')">Cancel</button></div>
+      </div>
+
+      <div class="card sheet" id="medPicker" hidden>
+        <div class="sheettitle">Which medication?</div>
+        <input id="medDose" type="text" class="field" placeholder="Dose (optional), e.g. 10 mg" style="margin-bottom:12px;">
+        <div id="medPickerList"></div>
+        <div class="sheetbtns"><button class="ghost" onclick="closeSheet('medPicker')">Cancel</button></div>
+      </div>
+
+      <div class="card daysum">
+        <div class="m"><div class="n" id="sumPeakItch">0</div><div class="l">Peak itch</div></div>
+        <div class="m"><div class="n" id="sumCream">0&times;</div><div class="l">Cream</div></div>
+        <div class="m"><div class="n" id="sumMeals">0</div><div class="l">Meals</div></div>
+        <div class="m"><div class="n" id="sumPhotos">0</div><div class="l">Photo</div></div>
+      </div>
+
+      <div class="card">
+        <p class="label">Today's log</p>
+        <div class="tl" id="timeline">
+          <div class="empty">Loading today...</div>
+        </div>
+      </div>
+
+      <div class="card" id="eveCard">
+        <div id="evePrompt">
+          <p class="label" style="margin-bottom:8px;">Evening summary</p>
+          <div class="row" style="border:none;padding:0;">
+            <div style="font-size:13px;color:var(--steel);max-width:68%;">Close out the day with an overall read and sleep notes.</div>
+            <button class="ghost" style="width:auto;padding:10px 15px;" onclick="toggleEve()">Add</button>
+          </div>
+        </div>
+        <div id="eveFields" class="evefields" hidden>
+          <p class="label">Evening summary</p>
+          <div><div class="meta" style="margin-bottom:7px;">Overall today vs yesterday</div>
+            <div class="seg" data-seg="overall"><button aria-pressed="false">Worse</button><button aria-pressed="true">Same</button><button aria-pressed="false">Better</button></div></div>
+          <div><div class="meta" style="margin-bottom:7px;">Sleep quality</div>
+            <div class="seg" data-seg="sleep"><button aria-pressed="false">Poor</button><button aria-pressed="true">OK</button><button aria-pressed="false">Good</button></div></div>
+          <div class="row" style="border:none;padding:0;"><div class="k">Overheated at night</div><label class="switch"><input type="checkbox" id="eveOverheated"><span class="slider"></span></label></div>
+          <div><div class="meta" style="margin-bottom:7px;">Stress</div>
+            <div class="seg" data-seg="stress"><button aria-pressed="true">Low</button><button aria-pressed="false">Medium</button><button aria-pressed="false">High</button></div></div>
+          <div><textarea id="eveNote" style="min-height:54px;" placeholder="Anything else about today..."></textarea></div>
+          <button class="primary" onclick="saveEve()">Save evening summary</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- MEALS -->
+    <section class="screen" id="s-meals">
+      <h2 class="title">Meal analyzer</h2>
+      <p class="sub">Photo plus an optional description, read by the model.</p>
+
+      <input type="file" id="mealCamera" accept="image/*" capture="environment" hidden>
+      <input type="file" id="mealFile" accept="image/*" hidden>
+
+      <div class="card">
+        <div class="filebtns">
+          <button class="ghost" onclick="document.getElementById('mealCamera').click()">Take photo</button>
+          <button class="ghost" onclick="document.getElementById('mealFile').click()">Choose photo</button>
+        </div>
+        <div id="mealPreviewWrap" hidden style="margin-top:12px;">
+          <img id="mealPreview" alt="Meal photo" style="width:100%;border-radius:9px;display:block;">
+        </div>
+        <textarea id="mealDesc" style="margin-top:12px;" placeholder="Add detail the photo can't show: sauces, oils, dairy, how it was cooked..."></textarea>
+        <button class="primary" id="mealAnalyzeBtn" style="margin-top:12px;" onclick="analyzeMeal()" disabled>Analyze meal</button>
+        <p class="meta" id="mealHint" style="margin-top:10px;">Add a photo to analyze.</p>
+      </div>
+
+      <p class="label" style="margin:18px 0 10px;">Last analysis</p>
+      <div id="mealResult">
+        <div class="card"><p class="meta" style="margin:0;">No meals analyzed yet.</p></div>
+      </div>
+    </section>
+
+    <!-- SKIN (episodes) -->
+    <section class="screen" id="s-skin">
+      <h2 class="title">Skin</h2>
+      <p class="sub">Track each flare from the first photo through recovery.</p>
+
+      <input type="file" id="episodeBaselineFile" accept="image/*" capture="environment" hidden>
+
+      <div class="card sheet" id="episodeSheet" hidden>
+        <div class="sheettitle">New episode</div>
+        <div class="meta" style="margin-bottom:7px;">Area</div>
+        <div class="seg" data-seg="episoderegion" style="flex-wrap:wrap;">
+          <button aria-pressed="true">Left elbow</button>
+          <button aria-pressed="false">Neck</button>
+          <button aria-pressed="false">Hands</button>
+          <button aria-pressed="false">Face</button>
+        </div>
+        <textarea id="episodeNote" style="margin-top:12px;" placeholder="What's going on (optional)"></textarea>
+        <div id="baselineWrap" hidden style="margin-top:12px;">
+          <img id="baselineImg" alt="Baseline photo" style="width:100%;border-radius:9px;display:block;">
+        </div>
+        <button class="ghost" style="margin-top:12px;" onclick="document.getElementById('episodeBaselineFile').click()">Take baseline photo</button>
+        <div class="sheetbtns"><button class="primary" id="createEpisodeBtn" onclick="createEpisode()">Create episode</button><button class="ghost" onclick="cancelEpisodeSheet()">Cancel</button></div>
+        <p class="meta" id="episodeHint" style="margin-top:10px;"></p>
+      </div>
+
+      <button class="primary" onclick="newEpisode()" style="margin-bottom:14px;">+ New episode</button>
+      <div id="episodeList">
+        <div class="card"><p class="meta" style="margin:0;">No episodes yet.</p></div>
+      </div>
+    </section>
+
+    <!-- EPISODE DETAIL -->
+    <section class="screen" id="s-episode">
+      <button class="back" onclick="backToSkin()">&#8249; Back to episodes</button>
+
+      <input type="file" id="progressFile" accept="image/*" capture="environment" hidden>
+
+      <div class="card sheet" id="progressSheet" hidden>
+        <div class="sheettitle">Progress photo</div>
+        <div id="progressWrap" hidden style="margin-bottom:12px;">
+          <img id="progressImg" alt="Progress photo" style="width:100%;border-radius:9px;display:block;">
+        </div>
+        <button class="ghost" onclick="document.getElementById('progressFile').click()">Take progress photo</button>
+        <div style="margin-top:12px;"><div class="meta" style="margin-bottom:7px;">Cream applied (optional)</div>
+          <div class="chiprow" id="progressCreams"></div></div>
+        <div style="margin-top:12px;"><div class="meta" style="margin-bottom:7px;">Hours since you applied it</div>
+          <input id="progressHours" type="number" min="0" step="1" placeholder="e.g. 12"></div>
+        <div class="sheetbtns"><button class="primary" id="progressBtn" onclick="submitProgress()">Add progress photo</button><button class="ghost" onclick="cancelProgress()">Cancel</button></div>
+        <p class="meta" id="progressHint" style="margin-top:10px;"></p>
+      </div>
+
+      <div id="episodeDetail"></div>
+    </section>
+
+    <!-- TRENDS -->
+    <section class="screen" id="s-trends">
+      <h2 class="title">Trends</h2>
+      <p class="sub">Your itch over the last 21 days, from what you have logged.</p>
+
+      <div class="card">
+        <p class="label">Itch score &middot; last 21 days</p>
+        <div class="chartwrap" id="chart"></div>
+      </div>
+
+      <div class="stats" id="trendStats"></div>
+      <p class="disc">Built from your own logged data. The more you log, the clearer the picture.</p>
+    </section>
+
+    <!-- INSIGHTS -->
+    <section class="screen" id="s-insights">
+      <h2 class="title">Insights</h2>
+      <p class="sub">What your data and the research say drives your eczema.</p>
+
+      <div class="card" style="border-color:#C9C5B8;">
+        <p class="label" style="margin-bottom:8px;">Dermatologist visit</p>
+        <div class="row" style="border:none;padding:0;">
+          <div style="max-width:64%;"><div class="k">6-month summary</div><div class="meta">Severity, flares, triggers, photos, questions</div></div>
+          <button class="ghost" style="width:auto;padding:10px 16px;" onclick="go('derm')">Prepare</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="label">Pattern analysis</p>
+        <p class="meta" style="margin:-4px 0 12px;">Reads your meals, medications, creams, and severity over the last 30 days for what helps and what makes it worse.</p>
+        <button class="primary" id="analyzeBtn" onclick="runAnalysis()">Analyze my patterns</button>
+        <p class="meta" id="insightsMeta" style="margin-top:10px;"></p>
+        <p class="meta" id="insightsHint" style="margin-top:4px;"></p>
+      </div>
+
+      <div id="insightsResult">
+        <div class="card"><p class="meta" style="margin:0;">Run an analysis to see patterns across your food, medication, and skin data.</p></div>
+      </div>
+
+      <p class="disc">Grounded in atopic dermatitis research and your own tracking. Treatment changes are for your dermatologist to decide.</p>
+    </section>
+
+    <!-- DERMATOLOGIST SUMMARY -->
+    <section class="screen" id="s-derm">
+      <button class="back" onclick="go('insights')">&#8249; Back</button>
+      <h2 class="title">Dermatologist summary</h2>
+      <p class="sub">About the last 6 months of your tracking.</p>
+      <div id="dermBody">
+        <div class="card"><p class="meta" style="margin:0;">Loading your summary...</p></div>
+      </div>
+    </section>
+
+    <!-- LIBRARY -->
+    <section class="screen" id="s-library">
+      <button class="back" onclick="go('settings')">&#8249; Back</button>
+      <h2 class="title">Library</h2>
+      <p class="sub">Your creams and medications, with what the label and research say.</p>
+
+      <input type="file" id="prodFront" accept="image/*" capture="environment" hidden>
+      <input type="file" id="prodBack" accept="image/*" capture="environment" hidden>
+
+      <div id="libraryControls">
+        <div class="seg" data-seg="libkind" style="margin-bottom:14px;">
+          <button aria-pressed="true">Creams</button>
+          <button aria-pressed="false">Medications</button>
+        </div>
+        <button class="primary" onclick="openAddProduct()" style="margin-bottom:14px;">+ Add</button>
+
+        <div class="card sheet" id="addProductSheet" hidden>
+          <div class="sheettitle" id="addProductTitle">Add a cream</div>
+          <input id="prodName" type="text" class="field" placeholder="Name" style="margin-bottom:10px;">
+          <input id="prodBrand" type="text" class="field" placeholder="Brand (optional)" style="margin-bottom:12px;">
+          <div class="filebtns">
+            <button class="ghost" onclick="document.getElementById('prodFront').click()">Front label</button>
+            <button class="ghost" onclick="document.getElementById('prodBack').click()">Back label</button>
+          </div>
+          <div id="prodFrontWrap" hidden style="margin-top:12px;"><img id="prodFrontImg" alt="Front label" style="width:100%;border-radius:9px;display:block;"></div>
+          <div id="prodBackWrap" hidden style="margin-top:12px;"><img id="prodBackImg" alt="Back label" style="width:100%;border-radius:9px;display:block;"></div>
+          <div class="sheetbtns"><button class="primary" id="prodSubmitBtn" onclick="submitProduct()">Add to library</button><button class="ghost" onclick="cancelAddProduct()">Cancel</button></div>
+          <p class="meta" id="addProductHint" style="margin-top:10px;"></p>
+        </div>
+
+        <div id="productList"></div>
+      </div>
+
+      <div id="productDetail" hidden></div>
+    </section>
+
+    <!-- REMINDERS / SETTINGS -->
+    <section class="screen" id="s-settings">
+      <button class="back" onclick="go('today')">&#8249; Back</button>
+      <h2 class="title">Reminders</h2>
+      <p class="sub">Sent on schedule by your own machine, so they fire whether the app is open or not.</p>
+
+      <div class="hint" id="iosHint" hidden>
+        On iPhone, add Baseline to your Home Screen to enable phone push: tap Share, then Add to Home Screen, then open it from there.
+      </div>
+
+      <div class="card">
+        <p class="label">Library</p>
+        <div class="row" style="border:none;padding:0;">
+          <div style="max-width:64%;"><div class="k">Creams &amp; medications</div><div class="meta">Scan labels, see efficacy and side effects</div></div>
+          <button class="ghost" style="width:auto;padding:10px 16px;" onclick="go('library')">Open</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="label">Daily reminders</p>
+        <div class="row">
+          <div><div class="k">Take Rinvoq 30 mg</div><div class="meta">10:00 AM &middot; every day</div></div>
+          <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+        </div>
+        <div class="row">
+          <div><div class="k">Daily closeout</div><div class="meta">9:30 PM &middot; every day &middot; opens evening summary</div></div>
+          <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+        </div>
+        <button class="ghost" style="margin-top:12px;">+ Add reminder</button>
+      </div>
+
+      <div class="card">
+        <p class="label">Where reminders arrive</p>
+        <div class="seg" data-seg="channel">
+          <button aria-pressed="true">Telegram</button>
+          <button aria-pressed="false" onclick="enableReminders()">Phone push</button>
+        </div>
+        <p class="meta" style="margin-top:10px;line-height:1.5;">Telegram is the reliable default and matches your setup. Phone push needs the app added to your home screen first, and on iPhone that install step is required.</p>
+        <p class="meta" id="reminderStatus" style="margin-top:8px;"></p>
+      </div>
+
+      <div class="card">
+        <p class="label">Test it now</p>
+        <p class="meta" style="margin:-4px 0 12px;">Fire a sample notification in this browser to see how it looks.</p>
+        <button class="primary" onclick="testNotify()">Send test notification</button>
+        <p id="notifStatus" class="meta" style="margin-top:10px;"></p>
+      </div>
+    </section>
+
+  </div>
+
+  <nav class="nav">
+    <button class="active" data-go="today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M9 14l2 2 4-4"/></svg><span>Today</span></button>
+    <button data-go="meals"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 3v7a3 3 0 0 0 6 0V3M7 3v18M20 3c-2 0-3 2-3 5s1 4 3 4v9"/></svg><span>Meals</span></button>
+    <button data-go="skin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M9 10h.01M15 10h.01M9 15c1 1 5 1 6 0"/></svg><span>Skin</span></button>
+    <button data-go="trends"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 3v18h18"/><path d="M7 14l4-5 3 3 5-7"/></svg><span>Trends</span></button>
+    <button data-go="insights"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10c1 1 1 2 1 3h6c0-1 0-2 1-3a6 6 0 0 0-4-10z"/></svg><span>Insights</span></button>
+  </nav>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/app.js"></script>
+<script src="/capture.js"></script>
+<script src="/library.js"></script>
+<script src="/episodes.js"></script>
+<script src="/insights.js"></script>
+<script src="/reports.js"></script>
+<script src="/push.js"></script>
 </body>
 </html>

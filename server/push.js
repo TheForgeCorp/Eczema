@@ -3,13 +3,23 @@
 const webpush = require('web-push');
 const db = require('./db');
 
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT || 'mailto:you@example.com',
-  process.env.VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY
-);
+// Configure VAPID only when both keys are present. Without this guard the app
+// would crash on startup before push is set up; instead it runs for logging and
+// push activates as soon as keys land in .env.
+const configured = !!(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
+if (configured) {
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT || 'mailto:you@example.com',
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+}
 
 async function sendToAll(payload) {
+  if (!configured) {
+    console.warn('push skipped: VAPID keys not set. Run npm run gen-vapid and add them to .env');
+    return;
+  }
   const subs = db.getSubscriptions();
   const body = JSON.stringify(payload);
   await Promise.all(subs.map(async (row) => {

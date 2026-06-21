@@ -1,7 +1,7 @@
 // Baseline service worker: handles push delivery, notification taps, and an offline shell.
 
-const CACHE = 'baseline-v1';
-const SHELL = ['/', '/index.html', '/app.js', '/manifest.webmanifest'];
+const CACHE = 'baseline-v5';
+const SHELL = ['/', '/index.html', '/styles.css', '/app.js', '/capture.js', '/library.js', '/episodes.js', '/insights.js', '/reports.js', '/push.js', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
