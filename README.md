@@ -6,13 +6,15 @@ Working name: Baseline. The full UI design is in `docs/mockup.html` (clickable, 
 
 ## What is in this repo
 
-This is a scaffold, not the finished app. It stands up the parts that are hard to get right:
+The working app, built from the mockup:
 
-- PWA shell, manifest, icons, and service worker (`public/`)
-- Web push: client subscribe flow with the iOS install path (`public/app.js`), and the service worker push + notification-tap handling (`public/sw.js`)
-- Push backend: Express server, SQLite storage, `web-push`, and a `node-cron` schedule at 10:00 and 21:30 (`server/`)
+- Installed PWA with event logging (meal, cream, itch, photo, note, Rinvoq, evening summary) that persists to SQLite and renders the day's feed (`public/`, `server/`)
+- AI meal analyzer and skin severity scoring via the Anthropic API, with photos stored locally (`server/ai.js`, `server/photos.js`)
+- A unified library of creams and medications, with AI label extraction
+- Flare episodes with baseline and progress photos, plus an AI pattern analysis and a dermatologist summary
+- Web push: subscribe flow with the iOS install path (`public/push.js`), service worker push + notification-tap handling (`public/sw.js`), and a `node-cron` schedule at 10:00 and 21:30 (`server/`)
 
-The full screen-by-screen UI still needs building. Do that from the mockup. See `CLAUDE.md`.
+Design source of truth is `docs/mockup.html`. Build notes and conventions are in `CLAUDE.md`.
 
 ## Stack
 
@@ -25,12 +27,12 @@ Node + Express, `web-push` for delivery, `node-cron` for the schedule, `better-s
    npm install
    ```
 
-2. Generate VAPID keys and put them in `.env`
+2. Create your `.env` and add keys
    ```
    cp .env.example .env
    npm run gen-vapid
    ```
-   Paste the public and private keys into `.env`. Set `VAPID_SUBJECT` to your email.
+   Paste the generated public and private keys into `.env` and set `VAPID_SUBJECT` to your email. Add your Anthropic API key as `ANTHROPIC_API_KEY` (from console.anthropic.com) to enable the meal, skin, label, and analysis features; the app runs without it but those stay disabled.
 
 3. Run
    ```
