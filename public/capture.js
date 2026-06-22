@@ -39,25 +39,37 @@ const ALLERGEN_ORDER = [
   ['egg', 'Egg'], ['shellfish', 'Shellfish'], ['histamine', 'Histamine'], ['alcohol', 'Alcohol']
 ];
 
+// A meal can be analyzed from a photo, a typed description, or both. The button
+// stays disabled until at least one of them is present.
+function mealReady() {
+  const desc = $('mealDesc');
+  return !!mealImage || (desc && desc.value.trim().length > 0);
+}
+function refreshMealBtn() {
+  const btn = $('mealAnalyzeBtn');
+  if (btn) btn.disabled = !mealReady();
+}
+
 async function handleMealFile(input) {
   const b64 = await fileToBase64(input);
   if (!b64) return;
   mealImage = b64;
   $('mealPreview').src = 'data:image/jpeg;base64,' + b64;
   $('mealPreviewWrap').hidden = false;
-  $('mealAnalyzeBtn').disabled = false;
   $('mealHint').textContent = 'Photo ready. Add a description if you like, then analyze.';
+  refreshMealBtn();
 }
 
 async function analyzeMeal() {
-  if (!mealImage) { toast('Add a photo first'); return; }
+  const desc = $('mealDesc').value.trim();
+  if (!mealImage && !desc) { toast('Add a photo or a description'); return; }
   const btn = $('mealAnalyzeBtn');
   btn.disabled = true; btn.textContent = 'Analyzing...';
   try {
     const res = await fetch('/api/analyze/meal', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageBase64: mealImage, mediaType: 'image/jpeg', description: $('mealDesc').value })
+      body: JSON.stringify({ imageBase64: mealImage || null, mediaType: 'image/jpeg', description: desc })
     });
     const data = await res.json();
     if (!res.ok) { $('mealHint').textContent = data.error || 'Analysis failed.'; toast(data.error || 'Analysis failed'); return; }
@@ -69,7 +81,7 @@ async function analyzeMeal() {
     toast('Meal analyzed and logged');
     if (typeof loadToday === 'function') loadToday(false);
   } catch (e) { toast('Network error'); }
-  finally { btn.textContent = 'Analyze meal'; btn.disabled = !mealImage; }
+  finally { btn.textContent = 'Analyze meal'; refreshMealBtn(); }
 }
 
 function renderMealResult(m) {
@@ -106,9 +118,10 @@ async function checkMealAi() {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  const mc = $('mealCamera'), mf = $('mealFile');
+  const mc = $('mealCamera'), mf = $('mealFile'), md = $('mealDesc');
   if (mc) mc.addEventListener('change', () => handleMealFile(mc));
   if (mf) mf.addEventListener('change', () => handleMealFile(mf));
+  if (md) md.addEventListener('input', refreshMealBtn);
   loadMeals();
   checkMealAi();
 });

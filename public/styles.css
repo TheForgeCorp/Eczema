@@ -23,11 +23,17 @@ body {
   font-family: 'Inter', system-ui, sans-serif;
   font-weight: 400; font-size: 14px; line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  /* Only the .screens area scrolls; the document itself never does, so the
+     topbar and bottom nav stay put. */
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 .app {
   display: flex; flex-direction: column;
-  height: 100vh; max-width: 460px; margin: 0 auto;
+  height: 100vh;            /* fallback */
+  height: 100dvh;           /* matches the visible viewport on mobile (no drift) */
+  max-width: 460px; margin: 0 auto;
   background: var(--bg);
   border-left: 1px solid var(--border);
   border-right: 1px solid var(--border);
@@ -54,7 +60,7 @@ body {
 .gear:hover { color: var(--ink); }
 .gear:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
-.screens { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.screens { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .screen { display: none; padding: 18px 16px 28px; }
 .screen.active { display: block; }
 
@@ -94,6 +100,8 @@ input[type=range]:focus-visible { box-shadow: 0 0 0 2px var(--ink); }
 
 /* selectable chips */
 .chiprow { display: flex; flex-wrap: wrap; gap: 8px; }
+/* Long, granular body-area lists: cap height and scroll inside the sheet. */
+.arearow { max-height: 168px; overflow-y: auto; padding: 2px; -webkit-overflow-scrolling: touch; }
 .sel {
   border: 1px solid var(--border); background: #fff; color: var(--steel);
   border-radius: 20px; padding: 7px 13px; font-size: 13px; font-family: inherit; cursor: pointer;
@@ -255,7 +263,8 @@ input[type=number], input[type=text].field {
 .daysum .m .l { font-size: 11px; color: var(--mid); margin-top: 1px; }
 
 /* timeline */
-.tlitem { display: flex; gap: 12px; padding: 11px 0; }
+.tlitem { display: flex; gap: 12px; padding: 11px 0; cursor: pointer; border-radius: 8px; }
+.tlitem:hover { background: rgba(0,0,0,.02); }
 .tlitem + .tlitem { border-top: 1px solid var(--line); }
 .tltime { width: 60px; flex-shrink: 0; font-size: 12px; color: var(--mid); padding-top: 8px; }
 .tlic { width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: #fff; border: 1px solid var(--border); }
@@ -263,6 +272,7 @@ input[type=number], input[type=text].field {
 .tlic.meal svg { color: #9A5B12; }
 .tlic.cream svg { color: #2F6FB0; }
 .tlic.itch svg { color: #B0852B; }
+.tlic.inflammation svg { color: #C0492B; }
 .tlic.summary svg { color: #4B3FA8; }
 .tlic.rinvoq svg { color: #2F8F6F; }
 .tlic.medication svg { color: #7A5AF8; }

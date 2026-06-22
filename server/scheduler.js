@@ -6,6 +6,16 @@ const { sendToAll } = require('./push');
 const TZ = process.env.TZ || 'America/Toronto';
 
 function start() {
+  // 8:00 AM daily: morning summary (effects are often felt on waking)
+  cron.schedule('0 8 * * *', () => {
+    sendToAll({
+      title: 'Morning check-in',
+      body: 'How did you wake up? Log your morning summary.',
+      url: '/?screen=morning',
+      tag: 'morning'
+    });
+  }, { timezone: TZ });
+
   // 10:00 AM daily: Rinvoq
   cron.schedule('0 10 * * *', () => {
     sendToAll({
@@ -26,7 +36,7 @@ function start() {
     });
   }, { timezone: TZ });
 
-  console.log('Reminders scheduled: 10:00 and 21:30 ' + TZ);
+  console.log('Reminders scheduled: 08:00, 10:00, and 21:30 ' + TZ);
 }
 
 module.exports = { start };

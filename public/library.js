@@ -142,17 +142,25 @@ async function submitProduct() {
 }
 
 // ---------- pickers (logging a cream / medication) ----------
+// Cream logging is two-step: pick the cream, pick where it went, then Log. A
+// medication is systemic, so it logs on tap (with an optional dose) as before.
+let pickedCream = null;
+
 async function openCreamPicker() {
+  pickedCream = null;
   openSheet('creamPicker');
-  await renderPicker('cream', 'creamPickerList', 'logCreamFromLibrary');
+  if (typeof clearAreaChips === 'function') clearAreaChips('creamAreas');
+  const btn = $('creamLogBtn');
+  if (btn) btn.disabled = true;
+  await renderPicker('cream', 'creamPickerList', { select: 'selectPickedCream' });
 }
 async function openMedPicker() {
   openSheet('medPicker');
   $('medDose').value = '';
-  await renderPicker('medication', 'medPickerList', 'logMedFromLibrary');
+  await renderPicker('medication', 'medPickerList', { log: 'logMedFromLibrary' });
 }
 
-async function renderPicker(kind, listId, fn) {
+async function renderPicker(kind, listId, handlers) {
   const el = $(listId);
   el.innerHTML = '<p class="meta" style="margin:0;">Loading...</p>';
   try {
@@ -162,10 +170,25 @@ async function renderPicker(kind, listId, fn) {
         '<button class="ghost" onclick="closeSheet(\'' + (kind === 'cream' ? 'creamPicker' : 'medPicker') + '\');go(\'library\')">Open library to add one</button>';
       return;
     }
-    el.innerHTML = '<div class="chiprow">' + items.map((p) =>
-      '<button class="sel" onclick="' + fn + '(' + p.id + ',&quot;' + escapeHtml(p.name).replace(/"/g, '&quot;') + '&quot;)">' + escapeHtml(p.name) + '</button>'
-    ).join('') + '</div>';
+    const chip = (p) => handlers.select
+      ? '<button class="pick" aria-pressed="false" onclick="' + handlers.select + '(this,' + p.id + ',&quot;' + escapeHtml(p.name).replace(/"/g, '&quot;') + '&quot;)">' + escapeHtml(p.name) + '</button>'
+      : '<button class="sel" onclick="' + handlers.log + '(' + p.id + ',&quot;' + escapeHtml(p.name).replace(/"/g, '&quot;') + '&quot;)">' + escapeHtml(p.name) + '</button>';
+    el.innerHTML = '<div class="chiprow">' + items.map(chip).join('') + '</div>';
   } catch (e) { el.innerHTML = '<p class="meta" style="margin:0;">Could not load.</p>'; }
+}
+
+function selectPickedCream(btn, id, name) {
+  document.querySelectorAll('#creamPickerList .pick').forEach((b) => b.setAttribute('aria-pressed', 'false'));
+  btn.setAttribute('aria-pressed', 'true');
+  pickedCream = { id, name };
+  const log = $('creamLogBtn');
+  if (log) log.disabled = false;
+}
+
+async function addCream() {
+  if (!pickedCream) { toast('Pick a cream first'); return; }
+  const areas = typeof selectedAreas === 'function' ? selectedAreas('creamAreas') : [];
+  await logFromLibrary('cream', { productId: pickedCream.id, name: pickedCream.name, areas }, 'creamPicker', 'Cream logged');
 }
 
 async function logFromLibrary(type, payload, sheetId, msg) {
@@ -175,9 +198,6 @@ async function logFromLibrary(type, payload, sheetId, msg) {
     toast(msg);
     if (typeof loadToday === 'function') loadToday(true);
   } catch (e) { toast('Could not save. Check the server.'); }
-}
-function logCreamFromLibrary(id, name) {
-  logFromLibrary('cream', { productId: id, name }, 'creamPicker', 'Cream logged');
 }
 function logMedFromLibrary(id, name) {
   logFromLibrary('medication', { productId: id, name, dose: $('medDose').value.trim() }, 'medPicker', 'Medication logged');

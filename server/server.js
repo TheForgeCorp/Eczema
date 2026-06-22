@@ -46,6 +46,20 @@ app.get('/api/logs', (req, res) => {
   res.json(db.getLogsByDay(date));
 });
 
+// Edit a logged entry's payload.
+app.patch('/api/logs/:id', (req, res) => {
+  const { payload } = req.body || {};
+  if (!payload || typeof payload !== 'object') return res.status(400).json({ ok: false });
+  const row = db.updateLog(Number(req.params.id), payload);
+  if (!row) return res.status(404).json({ ok: false });
+  res.json({ ok: true, ...row });
+});
+
+// Delete a logged entry.
+app.delete('/api/logs/:id', (req, res) => {
+  res.json({ ok: db.deleteLog(Number(req.params.id)) });
+});
+
 // Most recent events of one type (Meals last-analysis, Skin history).
 app.get('/api/recent', (req, res) => {
   if (!req.query.type) return res.status(400).json({ ok: false });
@@ -78,14 +92,16 @@ function mealSummary(allergens) {
   return parts.length ? parts.join(', ') : 'No flags';
 }
 
-// Analyze a meal photo, store the photo + analysis as a log event.
+// Analyze a meal from a photo, a description, or both, and store it as a log event.
+// The photo is optional: a typed description alone is enough to scrape allergen data.
 app.post('/api/analyze/meal', async (req, res) => {
   const { imageBase64, mediaType, description } = req.body || {};
-  if (!imageBase64) return res.status(400).json({ ok: false, error: 'No image provided.' });
+  const hasDesc = description && String(description).trim().length > 0;
+  if (!imageBase64 && !hasDesc) return res.status(400).json({ ok: false, error: 'Add a photo or a description.' });
   if (!ai.isConfigured()) return aiError(res, { code: 'NO_KEY' });
   try {
-    const analysis = await ai.analyzeMeal({ imageBase64, mediaType: mediaType || 'image/jpeg', description });
-    const photo = photos.savePhoto(imageBase64, mediaType || 'image/jpeg');
+    const analysis = await ai.analyzeMeal({ imageBase64: imageBase64 || null, mediaType: mediaType || 'image/jpeg', description });
+    const photo = imageBase64 ? photos.savePhoto(imageBase64, mediaType || 'image/jpeg') : null;
     const tags = mealSummary(analysis.allergens);
     const row = db.addLog('meal', { name: analysis.dish, ...analysis, tags, photo });
     res.status(201).json({ ok: true, analysis, photo, tags, ...row });
@@ -188,6 +204,11 @@ app.post('/api/episodes/:id/resolve', (req, res) => {
   res.json({ ok: true, episode });
 });
 
+// Delete an episode and its photos.
+app.delete('/api/episodes/:id', (req, res) => {
+  res.json({ ok: db.deleteEpisode(Number(req.params.id)) });
+});
+
 // ---------- pattern analysis ----------
 // Build a compact, readable summary of recent data for the model.
 function buildAnalysisSummary(days) {
@@ -200,6 +221,9 @@ function buildAnalysisSummary(days) {
 
   const itch = byType('itch').map((l) => `${d(l.ts)}: ${l.payload.score}/10${l.payload.areas && l.payload.areas.length ? ' (' + l.payload.areas.join(', ') + ')' : ''}`);
   lines.push('\nITCH SCORES:\n' + (itch.join('\n') || 'none'));
+
+  const infl = byType('inflammation').map((l) => `${d(l.ts)}: ${l.payload.level}/10${l.payload.areas && l.payload.areas.length ? ' (' + l.payload.areas.join(', ') + ')' : ''}`);
+  lines.push('\nINFLAMMATION (felt, by area):\n' + (infl.join('\n') || 'none'));
 
   const skin = byType('photo').map((l) => `${d(l.ts)}: overall ${l.payload.overall}/10 (redness ${l.payload.redness}, scaling ${l.payload.scaling}, area ${l.payload.area})${l.payload.region ? ' ' + l.payload.region : ''}${l.payload.photoKind === 'progress' && l.payload.creamName ? ', ' + l.payload.creamName + ' applied' : ''}`);
   lines.push('\nSKIN SEVERITY:\n' + (skin.join('\n') || 'none'));
@@ -217,8 +241,11 @@ function buildAnalysisSummary(days) {
   const meds = byType('medication').map((l) => `${d(l.ts)}: ${l.payload.name || 'medication'}${l.payload.dose ? ' ' + l.payload.dose : ''}`);
   lines.push('\nOTHER MEDICATIONS:\n' + (meds.join('\n') || 'none'));
 
-  const creams = byType('cream').map((l) => `${d(l.ts)}: ${l.payload.name || 'emollient'}`);
+  const creams = byType('cream').map((l) => `${d(l.ts)}: ${l.payload.name || 'emollient'}${Array.isArray(l.payload.areas) && l.payload.areas.length ? ' on ' + l.payload.areas.join(', ') : ''}`);
   lines.push('\nCREAMS / EMOLLIENTS APPLIED:\n' + (creams.join('\n') || 'none'));
+
+  const morning = byType('morning').map((l) => `${d(l.ts)}: skin vs last night ${l.payload.skin || '?'}, itch on waking ${l.payload.itch || '?'}, woke scratching ${l.payload.woke ? 'yes' : 'no'}${l.payload.text ? ', note: ' + l.payload.text : ''}`);
+  lines.push('\nMORNING SUMMARIES:\n' + (morning.join('\n') || 'none'));
 
   const eve = byType('summary').map((l) => `${d(l.ts)}: overall ${l.payload.overall || '?'}, sleep ${l.payload.sleep || '?'}, overheated ${l.payload.overheated ? 'yes' : 'no'}, stress ${l.payload.stress || '?'}${l.payload.text ? ', note: ' + l.payload.text : ''}`);
   lines.push('\nEVENING SUMMARIES:\n' + (eve.join('\n') || 'none'));
@@ -268,12 +295,27 @@ app.get('/api/trends', (req, res) => {
     series.push({ day, score: day in peakByDay ? peakByDay[day] : null });
   }
 
+  // Daily peak inflammation.
+  const inflPeakByDay = {};
+  logs.filter((l) => l.type === 'inflammation').forEach((l) => {
+    const day = dayOf(l.ts);
+    inflPeakByDay[day] = Math.max(inflPeakByDay[day] != null ? inflPeakByDay[day] : 0, Number(l.payload.level) || 0);
+  });
+  const inflammationSeries = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const day = db.localDay(new Date(Date.now() - i * 86400000));
+    inflammationSeries.push({ day, level: day in inflPeakByDay ? inflPeakByDay[day] : null });
+  }
+
   const scoresIn = (from, to) => itch.filter((l) => ageDays(l.ts) >= from && ageDays(l.ts) < to).map((l) => Number(l.payload.score) || 0);
+  const inflIn = (from, to) => logs.filter((l) => l.type === 'inflammation' && ageDays(l.ts) >= from && ageDays(l.ts) < to).map((l) => Number(l.payload.level) || 0);
   const rinvoqDays = new Set(logs.filter((l) => l.type === 'rinvoq').map((l) => dayOf(l.ts))).size;
 
   res.json({
     series,
+    inflammationSeries,
     stats: {
+      avgInflammationWeek: round1(avg(inflIn(0, 7))),
       avgThisWeek: round1(avg(scoresIn(0, 7))),
       avgLastWeek: round1(avg(scoresIn(7, 14))),
       rinvoqDays, days,

@@ -91,6 +91,20 @@ function addLog(type, payload) {
   return { id: info.lastInsertRowid, ts, day, type };
 }
 
+function getLog(id) {
+  const r = db.prepare('SELECT id, ts, type, payload FROM logs WHERE id = ?').get(id);
+  return r ? hydrate(r) : null;
+}
+
+function updateLog(id, payload) {
+  const info = db.prepare('UPDATE logs SET payload = ? WHERE id = ?').run(JSON.stringify(payload || {}), id);
+  return info.changes > 0 ? getLog(id) : null;
+}
+
+function deleteLog(id) {
+  return db.prepare('DELETE FROM logs WHERE id = ?').run(id).changes > 0;
+}
+
 function hydrate(r) {
   return { id: r.id, ts: r.ts, type: r.type, payload: r.payload ? JSON.parse(r.payload) : {} };
 }
@@ -157,6 +171,13 @@ function resolveEpisode(id) {
   db.prepare("UPDATE episodes SET status = 'resolved', resolved_at = ? WHERE id = ?").run(new Date().toISOString(), id);
   return getEpisode(id);
 }
+// Delete an episode and the photo events tied to it.
+function deleteEpisode(id) {
+  const photoIds = getEpisodePhotos(id).map((l) => l.id);
+  const del = db.prepare('DELETE FROM logs WHERE id = ?');
+  photoIds.forEach((pid) => del.run(pid));
+  return db.prepare('DELETE FROM episodes WHERE id = ?').run(id).changes > 0;
+}
 // Photos (logs of type photo) tied to one episode, oldest first.
 function getEpisodePhotos(episodeId) {
   return db.prepare("SELECT id, ts, type, payload FROM logs WHERE type = 'photo' ORDER BY ts ASC")
@@ -176,8 +197,8 @@ function getLatestAnalysis() {
 
 module.exports = {
   saveSubscription, getSubscriptions, removeSubscription,
-  addLog, getLogsByDay, getLogsByType, getLogsSince, localDay,
+  addLog, getLog, updateLog, deleteLog, getLogsByDay, getLogsByType, getLogsSince, localDay,
   addProduct, getProducts, getProduct, deleteProduct,
-  addEpisode, getEpisode, getEpisodes, resolveEpisode, getEpisodePhotos,
+  addEpisode, getEpisode, getEpisodes, resolveEpisode, deleteEpisode, getEpisodePhotos,
   saveAnalysis, getLatestAnalysis
 };

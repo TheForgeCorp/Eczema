@@ -64,30 +64,30 @@ const MEAL_SCHEMA = {
 };
 
 const MEAL_SYSTEM = [
-  'You analyze a photo of a meal for someone tracking eczema triggers.',
-  'Identify the dish, give a rough calorie range for the portion shown, and rate the likelihood',
-  'of each allergen or trigger: dairy, egg, gluten, nuts, soy, shellfish, high-histamine, and alcohol.',
-  'Rate each as likely, possible, or unlikely. List visible ingredients and add a short caveat about',
-  'hidden ingredients (sauces, oils, cross-contamination). If the person provides a text description,',
-  'trust it over the image for anything it states. Do not use em dashes. This is not medical advice.'
+  'You analyze a meal for someone tracking eczema triggers. The input may be a photo, a text',
+  'description, or both. Identify the dish, give a rough calorie range for the portion, and rate the',
+  'likelihood of each allergen or trigger: dairy, egg, gluten, nuts, soy, shellfish, high-histamine,',
+  'and alcohol. Rate each as likely, possible, or unlikely. List the ingredients (visible or implied)',
+  'and add a short caveat about hidden ingredients (sauces, oils, cross-contamination). If the person',
+  'provides a text description, trust it over the image for anything it states. If there is no photo,',
+  'work entirely from the description and reason about typical preparations. Do not use em dashes.',
+  'This is not medical advice.'
 ].join(' ');
 
 async function analyzeMeal({ imageBase64, mediaType, description }) {
   const c = getClient();
-  const text = description && description.trim()
-    ? `My description of the meal: ${description.trim()}`
-    : 'No description provided. Judge from the photo.';
+  const desc = description && description.trim();
+  const content = [];
+  if (imageBase64) content.push({ type: 'image', source: { type: 'base64', media_type: mediaType, data: imageBase64 } });
+  const text = imageBase64
+    ? (desc ? `My description of the meal: ${desc}` : 'No description provided. Judge from the photo.')
+    : `There is no photo. Analyze this meal from my description alone: ${desc}`;
+  content.push({ type: 'text', text });
   const res = await c.messages.create({
     model: MODEL,
     max_tokens: 2048,
     system: MEAL_SYSTEM,
-    messages: [{
-      role: 'user',
-      content: [
-        { type: 'image', source: { type: 'base64', media_type: mediaType, data: imageBase64 } },
-        { type: 'text', text }
-      ]
-    }],
+    messages: [{ role: 'user', content }],
     output_config: { format: { type: 'json_schema', schema: MEAL_SCHEMA } }
   });
   const data = jsonFromResponse(res);
@@ -247,9 +247,11 @@ const PATTERNS_SCHEMA = {
 
 const PATTERNS_SYSTEM = [
   'You are an analyst with dermatology and atopic dermatitis expertise reviewing one person\'s self-tracked',
-  'eczema data: itch scores, skin severity, meals with allergen flags, medications (including Rinvoq /',
-  'upadacitinib and any antihistamines), cream and emollient applications, and sleep, stress, and overheating',
-  'notes. Find what drives this person\'s flares and what controls them. You may draw conclusions, not only',
+  'eczema data: itch scores, felt inflammation by body area, skin severity, meals with allergen flags,',
+  'medications (including Rinvoq / upadacitinib and any antihistamines), cream and emollient applications,',
+  'and sleep, stress, and overheating notes. The person reports inflammation feeling as a separate signal',
+  'from itch and finds it varies by area, so weigh it as its own indicator. Find what drives this person\'s',
+  'flares and what controls them. You may draw conclusions, not only',
   'hypotheses, where the data and established research support them. Account for a 1 to 3 day trigger lag',
   'between food and skin response. Surface aggravating factors, what makes it worse, as well as protective',
   'ones. Ground every finding in reported results and atopic dermatitis research, and rate the evidence',

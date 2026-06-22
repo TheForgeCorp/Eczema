@@ -39,6 +39,8 @@ async function loadTrends() {
     const t = await (await fetch('/api/trends?days=21')).json();
     const points = t.series.filter((s) => s.score != null).map((s) => ({ label: s.day.slice(8), v: s.score }));
     drawSeries('chart', points, 'Itch score trend');
+    const infl = (t.inflammationSeries || []).filter((s) => s.level != null).map((s) => ({ label: s.day.slice(8), v: s.level }));
+    drawSeries('inflChart', infl, 'Inflammation trend');
 
     const s = t.stats;
     const avg = s.avgThisWeek != null ? s.avgThisWeek : '--';

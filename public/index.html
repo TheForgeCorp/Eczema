@@ -30,13 +30,14 @@
     <!-- TODAY -->
     <section class="screen active" id="s-today">
       <h2 class="title">Today</h2>
-      <p class="sub">Log things as they happen. They roll up into your daily report.</p>
+      <p class="sub">Log things as they happen. Tap any entry to edit or delete it.</p>
 
-      <div class="quickrow" style="grid-template-columns:repeat(6,1fr);">
+      <div class="quickrow" style="grid-template-columns:repeat(7,1fr);">
         <button class="qbtn" onclick="go('meals')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 3v7a3 3 0 0 0 6 0V3M7 3v18M20 3c-2 0-3 2-3 5s1 4 3 4v9"/></svg></span><span>Meal</span></button>
         <button class="qbtn" onclick="openCreamPicker()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg></span><span>Cream</span></button>
         <button class="qbtn" onclick="openMedPicker()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="8" width="18" height="8" rx="4"/><path d="M12 8v8"/></svg></span><span>Med</span></button>
         <button class="qbtn" onclick="openSheet('itchSheet')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 12h3l2-6 4 13 2-7h7"/></svg></span><span>Itch</span></button>
+        <button class="qbtn" onclick="openSheet('inflammationSheet')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3c1.5 3-1 4.5-1 6.5a3 3 0 0 0 6 0c0-1-.5-2-1.2-3 2.4 1.2 3.2 3.4 3.2 6A6.2 6.2 0 0 1 5.8 12.5C5.8 9 8.5 6.5 12 3z"/></svg></span><span>Inflam</span></button>
         <button class="qbtn" onclick="go('skin')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="7" width="18" height="13" rx="2"/><circle cx="12" cy="13.5" r="3.5"/><path d="M8 7l1.5-2.5h5L16 7"/></svg></span><span>Photo</span></button>
         <button class="qbtn" onclick="openSheet('noteSheet')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/></svg></span><span>Note</span></button>
       </div>
@@ -51,13 +52,24 @@
         <div class="scaleends"><span>None</span><span>Unbearable</span></div>
         <div style="margin-top:14px;">
           <div class="meta" style="margin-bottom:7px;">Areas (optional)</div>
-          <div class="chiprow" id="itchAreas">
-            <button class="sel" aria-pressed="false">Left elbow</button>
-            <button class="sel" aria-pressed="false">Neck</button>
-            <button class="sel" aria-pressed="false">Hands</button>
-          </div>
+          <div class="chiprow arearow" id="itchAreas"></div>
         </div>
         <div class="sheetbtns"><button class="primary" onclick="addItch()">Log itch</button><button class="ghost" onclick="closeSheet('itchSheet')">Cancel</button></div>
+      </div>
+
+      <div class="card sheet" id="inflammationSheet" hidden>
+        <div class="sheettitle">How does the inflammation feel right now?</div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;">
+          <span class="mini"><span id="inflSheetVal">5</span><span style="font-size:14px;color:var(--mid);">/10</span></span>
+          <span class="meta" id="inflSheetWord">Moderate</span>
+        </div>
+        <input type="range" id="inflRange" min="0" max="10" value="5">
+        <div class="scaleends"><span>None</span><span>Intense</span></div>
+        <div style="margin-top:14px;">
+          <div class="meta" style="margin-bottom:7px;">Areas</div>
+          <div class="chiprow arearow" id="inflammationAreas"></div>
+        </div>
+        <div class="sheetbtns"><button class="primary" onclick="addInflammation()">Log inflammation</button><button class="ghost" onclick="closeSheet('inflammationSheet')">Cancel</button></div>
       </div>
 
       <div class="card sheet" id="noteSheet" hidden>
@@ -75,7 +87,11 @@
       <div class="card sheet" id="creamPicker" hidden>
         <div class="sheettitle">Which cream did you apply?</div>
         <div id="creamPickerList"></div>
-        <div class="sheetbtns"><button class="ghost" onclick="closeSheet('creamPicker')">Cancel</button></div>
+        <div style="margin-top:14px;">
+          <div class="meta" style="margin-bottom:7px;">Where on the body?</div>
+          <div class="chiprow arearow" id="creamAreas"></div>
+        </div>
+        <div class="sheetbtns"><button class="primary" id="creamLogBtn" onclick="addCream()" disabled>Log cream</button><button class="ghost" onclick="closeSheet('creamPicker')">Cancel</button></div>
       </div>
 
       <div class="card sheet" id="medPicker" hidden>
@@ -83,6 +99,17 @@
         <input id="medDose" type="text" class="field" placeholder="Dose (optional), e.g. 10 mg" style="margin-bottom:12px;">
         <div id="medPickerList"></div>
         <div class="sheetbtns"><button class="ghost" onclick="closeSheet('medPicker')">Cancel</button></div>
+      </div>
+
+      <div class="card sheet" id="editSheet" hidden>
+        <div class="sheettitle" id="editTitle">Edit entry</div>
+        <div id="editFields"></div>
+        <div class="sheetbtns" style="margin-top:14px;">
+          <button class="primary" id="editSaveBtn" onclick="saveEdit()">Save</button>
+          <button class="ghost" onclick="deleteEntry()" style="color:var(--loss);border-color:var(--loss);">Delete</button>
+        </div>
+        <button class="ghost" style="margin-top:9px;" onclick="closeSheet('editSheet')">Cancel</button>
+        <p class="meta" id="editHint" style="margin-top:8px;"></p>
       </div>
 
       <div class="card daysum">
@@ -99,6 +126,27 @@
         </div>
       </div>
 
+      <div class="card" id="morningCard">
+        <div id="morningPrompt">
+          <p class="label" style="margin-bottom:8px;">Morning summary</p>
+          <div class="row" style="border:none;padding:0;">
+            <div style="font-size:13px;color:var(--steel);max-width:68%;">How you woke up, and any overnight effects.</div>
+            <button class="ghost" style="width:auto;padding:10px 15px;" onclick="toggleMorning()">Add</button>
+          </div>
+        </div>
+        <div id="morningDone" hidden></div>
+        <div id="morningFields" class="evefields" hidden>
+          <p class="label">Morning summary</p>
+          <div><div class="meta" style="margin-bottom:7px;">Skin this morning vs last night</div>
+            <div class="seg" data-seg="mskin"><button aria-pressed="false">Worse</button><button aria-pressed="true">Same</button><button aria-pressed="false">Better</button></div></div>
+          <div><div class="meta" style="margin-bottom:7px;">Itch on waking</div>
+            <div class="seg" data-seg="mitch"><button aria-pressed="true">None</button><button aria-pressed="false">Mild</button><button aria-pressed="false">Strong</button></div></div>
+          <div class="row" style="border:none;padding:0;"><div class="k">Woke up scratching</div><label class="switch"><input type="checkbox" id="mWoke"><span class="slider"></span></label></div>
+          <div><textarea id="morningNote" style="min-height:54px;" placeholder="Anything about how you woke up..."></textarea></div>
+          <button class="primary" onclick="saveMorning()">Save morning summary</button>
+        </div>
+      </div>
+
       <div class="card" id="eveCard">
         <div id="evePrompt">
           <p class="label" style="margin-bottom:8px;">Evening summary</p>
@@ -107,6 +155,7 @@
             <button class="ghost" style="width:auto;padding:10px 15px;" onclick="toggleEve()">Add</button>
           </div>
         </div>
+        <div id="eveDone" hidden></div>
         <div id="eveFields" class="evefields" hidden>
           <p class="label">Evening summary</p>
           <div><div class="meta" style="margin-bottom:7px;">Overall today vs yesterday</div>
@@ -125,7 +174,7 @@
     <!-- MEALS -->
     <section class="screen" id="s-meals">
       <h2 class="title">Meal analyzer</h2>
-      <p class="sub">Photo plus an optional description, read by the model.</p>
+      <p class="sub">A photo, a description, or both. Either is enough to read.</p>
 
       <input type="file" id="mealCamera" accept="image/*" capture="environment" hidden>
       <input type="file" id="mealFile" accept="image/*" hidden>
@@ -138,9 +187,9 @@
         <div id="mealPreviewWrap" hidden style="margin-top:12px;">
           <img id="mealPreview" alt="Meal photo" style="width:100%;border-radius:9px;display:block;">
         </div>
-        <textarea id="mealDesc" style="margin-top:12px;" placeholder="Add detail the photo can't show: sauces, oils, dairy, how it was cooked..."></textarea>
+        <textarea id="mealDesc" style="margin-top:12px;" placeholder="Describe the meal, or add detail a photo can't show: sauces, oils, dairy, how it was cooked..."></textarea>
         <button class="primary" id="mealAnalyzeBtn" style="margin-top:12px;" onclick="analyzeMeal()" disabled>Analyze meal</button>
-        <p class="meta" id="mealHint" style="margin-top:10px;">Add a photo to analyze.</p>
+        <p class="meta" id="mealHint" style="margin-top:10px;">Add a photo or describe the meal, then analyze.</p>
       </div>
 
       <p class="label" style="margin:18px 0 10px;">Last analysis</p>
@@ -159,12 +208,7 @@
       <div class="card sheet" id="episodeSheet" hidden>
         <div class="sheettitle">New episode</div>
         <div class="meta" style="margin-bottom:7px;">Area</div>
-        <div class="seg" data-seg="episoderegion" style="flex-wrap:wrap;">
-          <button aria-pressed="true">Left elbow</button>
-          <button aria-pressed="false">Neck</button>
-          <button aria-pressed="false">Hands</button>
-          <button aria-pressed="false">Face</button>
-        </div>
+        <div class="chiprow arearow" id="episodeAreas"></div>
         <textarea id="episodeNote" style="margin-top:12px;" placeholder="What's going on (optional)"></textarea>
         <div id="baselineWrap" hidden style="margin-top:12px;">
           <img id="baselineImg" alt="Baseline photo" style="width:100%;border-radius:9px;display:block;">
@@ -211,6 +255,11 @@
       <div class="card">
         <p class="label">Itch score &middot; last 21 days</p>
         <div class="chartwrap" id="chart"></div>
+      </div>
+
+      <div class="card">
+        <p class="label">Inflammation &middot; last 21 days</p>
+        <div class="chartwrap" id="inflChart"></div>
       </div>
 
       <div class="stats" id="trendStats"></div>
@@ -311,6 +360,10 @@
 
       <div class="card">
         <p class="label">Daily reminders</p>
+        <div class="row">
+          <div><div class="k">Morning check-in</div><div class="meta">8:00 AM &middot; every day &middot; opens morning summary</div></div>
+          <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+        </div>
         <div class="row">
           <div><div class="k">Take Rinvoq 30 mg</div><div class="meta">10:00 AM &middot; every day</div></div>
           <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>

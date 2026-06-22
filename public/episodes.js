@@ -46,11 +46,30 @@ function renderEpisodeList(eps) {
 }
 
 // ---------- new episode ----------
+// Single-select area picker, rendered from the shared BODY_AREAS list (app.js).
+// Uses .pick chips so the generic .sel multi-select handler leaves them alone.
+function renderEpisodeAreas() {
+  const el = $('episodeAreas');
+  if (!el || typeof BODY_AREAS === 'undefined') return;
+  el.innerHTML = BODY_AREAS.map((a, i) =>
+    '<button class="pick" aria-pressed="' + (i === 0 ? 'true' : 'false') + '" onclick="pickEpisodeArea(this)">' + escapeHtml(a) + '</button>'
+  ).join('');
+}
+function pickEpisodeArea(btn) {
+  document.querySelectorAll('#episodeAreas .pick').forEach((b) => b.setAttribute('aria-pressed', 'false'));
+  btn.setAttribute('aria-pressed', 'true');
+}
+function selectedEpisodeArea() {
+  const on = document.querySelector('#episodeAreas .pick[aria-pressed="true"]');
+  return on ? on.textContent.trim() : '';
+}
+
 function newEpisode() {
   baselineImage = null;
   $('episodeNote').value = '';
   $('baselineWrap').hidden = true;
   $('episodeHint').textContent = '';
+  renderEpisodeAreas();
   $('episodeSheet').hidden = false;
   $('episodeSheet').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
@@ -65,7 +84,7 @@ async function handleBaselineFile(input) {
 }
 
 async function createEpisode() {
-  const region = segValue('episoderegion') || '';
+  const region = selectedEpisodeArea();
   if (!baselineImage) { $('episodeHint').textContent = 'Take a baseline photo of the current condition first.'; return; }
   const btn = $('createEpisodeBtn');
   btn.disabled = true; btn.textContent = 'Creating...';
@@ -113,6 +132,7 @@ function renderEpisodeDetail(ep, photos) {
     '<span class="badge ' + ep.status + '">' + ep.status + '</span></div>' +
     (ep.note ? '<p class="meta" style="margin:8px 0 0;">' + escapeHtml(ep.note) + '</p>' : '') +
     (ep.status === 'active' ? '<button class="ghost" style="margin-top:12px;" onclick="resolveEpisodeUI(' + ep.id + ')">Mark resolved</button>' : '') +
+    '<button class="ghost" style="margin-top:9px;color:var(--loss);border-color:var(--loss);" onclick="deleteEpisodeUI(' + ep.id + ')">Delete episode</button>' +
     '</div>';
 
   let timeline;
@@ -138,6 +158,7 @@ function renderEpisodeDetail(ep, photos) {
         '<div class="meta">' + context + '</div></div>' +
         (p.note ? '<p class="meta" style="margin:4px 0 0;">' + escapeHtml(p.note) + '</p>' : '') +
         '<div class="bars">' + bar('Redness', p.redness) + bar('Scaling', p.scaling) + bar('Affected area', p.area) + '</div>' +
+        '<button class="ghost" style="margin-top:6px;color:var(--loss);border-color:var(--loss);" onclick="deletePhoto(' + l.id + ')">Delete photo</button>' +
         '</div>';
     }).join('');
   }
@@ -155,6 +176,25 @@ async function resolveEpisodeUI(id) {
     toast('Episode resolved');
     openEpisode(id);
   } catch (e) { toast('Could not update'); }
+}
+
+async function deleteEpisodeUI(id) {
+  if (!confirm('Delete this episode and all its photos?')) return;
+  try {
+    await fetch('/api/episodes/' + id, { method: 'DELETE' });
+    toast('Episode deleted');
+    backToSkin();
+  } catch (e) { toast('Could not delete'); }
+}
+
+async function deletePhoto(logId) {
+  if (!confirm('Delete this photo?')) return;
+  try {
+    await fetch('/api/logs/' + logId, { method: 'DELETE' });
+    toast('Photo deleted');
+    if (currentEpisode) openEpisode(currentEpisode.id);
+    if (typeof loadToday === 'function') loadToday(false);
+  } catch (e) { toast('Could not delete'); }
 }
 
 // ---------- progress photo ----------
@@ -230,5 +270,6 @@ window.addEventListener('DOMContentLoaded', () => {
   const b = $('episodeBaselineFile'), p = $('progressFile');
   if (b) b.addEventListener('change', () => handleBaselineFile(b));
   if (p) p.addEventListener('change', () => handleProgressFile(p));
+  renderEpisodeAreas();
   loadEpisodes();
 });
