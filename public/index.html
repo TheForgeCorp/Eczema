@@ -101,17 +101,6 @@
         <div class="sheetbtns"><button class="ghost" onclick="closeSheet('medPicker')">Cancel</button></div>
       </div>
 
-      <div class="card sheet" id="editSheet" hidden>
-        <div class="sheettitle" id="editTitle">Edit entry</div>
-        <div id="editFields"></div>
-        <div class="sheetbtns" style="margin-top:14px;">
-          <button class="primary" id="editSaveBtn" onclick="saveEdit()">Save</button>
-          <button class="ghost" onclick="deleteEntry()" style="color:var(--loss);border-color:var(--loss);">Delete</button>
-        </div>
-        <button class="ghost" style="margin-top:9px;" onclick="closeSheet('editSheet')">Cancel</button>
-        <p class="meta" id="editHint" style="margin-top:8px;"></p>
-      </div>
-
       <div class="card daysum">
         <div class="m"><div class="n" id="sumPeakItch">0</div><div class="l">Peak itch</div></div>
         <div class="m"><div class="n" id="sumCream">0&times;</div><div class="l">Cream</div></div>
@@ -393,6 +382,19 @@
       </div>
     </section>
 
+  </div>
+
+  <!-- Edit sheet: a modal overlay so it can be opened from any screen (feed or episode). -->
+  <div class="modal-backdrop" id="modalBackdrop" hidden onclick="closeSheet('editSheet')"></div>
+  <div class="card sheet modal-sheet" id="editSheet" hidden>
+    <div class="sheettitle" id="editTitle">Edit entry</div>
+    <div id="editFields"></div>
+    <div class="sheetbtns" style="margin-top:14px;">
+      <button class="primary" id="editSaveBtn" onclick="saveEdit()">Save</button>
+      <button class="ghost" onclick="deleteEntry()" style="color:var(--loss);border-color:var(--loss);">Delete</button>
+    </div>
+    <button class="ghost" style="margin-top:9px;" onclick="closeSheet('editSheet')">Cancel</button>
+    <p class="meta" id="editHint" style="margin-top:8px;"></p>
   </div>
 
   <nav class="nav">

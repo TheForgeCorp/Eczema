@@ -182,8 +182,14 @@ function openSheet(id) {
     if (e) e.hidden = true;
   });
   $(id).hidden = false;
+  // The edit sheet is a modal; show its backdrop, hide it for the inline sheets.
+  const bd = $('modalBackdrop');
+  if (bd) bd.hidden = (id !== 'editSheet');
 }
-function closeSheet(id) { $(id).hidden = true; }
+function closeSheet(id) {
+  $(id).hidden = true;
+  if (id === 'editSheet') { const bd = $('modalBackdrop'); if (bd) bd.hidden = true; }
+}
 
 // ---------- capture actions ----------
 // Cream and medication logging go through the library pickers in library.js.

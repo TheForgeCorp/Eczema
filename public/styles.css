@@ -285,6 +285,16 @@ input[type=number], input[type=text].field {
 .empty { color: var(--mid); font-size: 13px; padding: 6px 0 2px; }
 
 /* sheets + evening */
+/* The edit sheet is a modal overlay (lives outside .screens) so it can be
+   opened from any screen, not just the one that triggered it. */
+.modal-backdrop { position: fixed; inset: 0; z-index: 60; background: rgba(20, 20, 18, .38); }
+.modal-sheet {
+  position: fixed; z-index: 61; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: calc(100% - 32px); max-width: 440px;
+  max-height: calc(100dvh - 72px); overflow-y: auto;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, .28);
+}
+.modal-backdrop[hidden], .modal-sheet[hidden] { display: none; }
 .sheettitle { font-weight: 500; margin-bottom: 12px; }
 .sheetbtns { display: flex; gap: 9px; margin-top: 14px; }
 .sheetbtns .primary, .sheetbtns .ghost { margin-top: 0; }
