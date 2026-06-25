@@ -16,4 +16,14 @@ function savePhoto(base64, mediaType) {
   return name;
 }
 
-module.exports = { savePhoto, dir };
+// Read a stored photo back as base64 so it can be re-sent to the analyzer (for
+// re-grading). basename guards against path traversal from the stored name.
+function readBase64(name) {
+  if (!name) return null;
+  const file = path.join(dir, path.basename(String(name)));
+  if (!fs.existsSync(file)) return null;
+  const mediaType = path.extname(file).toLowerCase() === '.png' ? 'image/png' : 'image/jpeg';
+  return { base64: fs.readFileSync(file).toString('base64'), mediaType };
+}
+
+module.exports = { savePhoto, readBase64, dir };

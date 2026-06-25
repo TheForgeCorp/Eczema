@@ -120,8 +120,9 @@ input[type=range]:focus-visible { box-shadow: 0 0 0 2px var(--ink); }
 .badge.active { background: var(--possible-bg); color: var(--possible-ink); }
 .badge.resolved { background: var(--unlikely-bg); color: var(--unlikely-ink); }
 
+/* 16px keeps iOS Safari from auto-zooming the page when a field is focused. */
 input[type=number], input[type=text].field {
-  width: 100%; font-family: inherit; font-size: 14px; border: 1px solid var(--border);
+  width: 100%; font-family: inherit; font-size: 16px; border: 1px solid var(--border);
   border-radius: 8px; padding: 10px 12px; background: #fff; color: var(--ink);
 }
 
@@ -289,7 +290,7 @@ input[type=number], input[type=text].field {
 .sheetbtns .primary, .sheetbtns .ghost { margin-top: 0; }
 .mini { font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 26px; }
 .evefields > div { margin-bottom: 14px; }
-textarea { width: 100%; font-family: inherit; font-size: 14px; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; resize: vertical; min-height: 58px; background: #fff; color: var(--ink); }
+textarea { width: 100%; font-family: inherit; font-size: 16px; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; resize: vertical; min-height: 58px; background: #fff; color: var(--ink); }
 
 /* dermatologist summary */
 .back { background: none; border: none; color: var(--steel); font-family: inherit; font-size: 14px; cursor: pointer; padding: 0 0 10px; }

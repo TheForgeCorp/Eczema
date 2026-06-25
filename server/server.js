@@ -60,6 +60,32 @@ app.delete('/api/logs/:id', (req, res) => {
   res.json({ ok: db.deleteLog(Number(req.params.id)) });
 });
 
+// Re-grade a skin photo against a user-corrected overall severity. The owner's
+// score is authoritative; the AI re-anchors the component scores and rewrites the
+// observation to acknowledge it. Falls back to just storing the score if the AI
+// is off or the image is missing.
+app.post('/api/logs/:id/regrade-photo', async (req, res) => {
+  const id = Number(req.params.id);
+  const log = db.getLog(id);
+  if (!log || log.type !== 'photo') return res.status(404).json({ ok: false, error: 'Photo not found.' });
+  const overall = Math.round(Number(req.body && req.body.overall));
+  if (!Number.isFinite(overall) || overall < 0 || overall > 10) {
+    return res.status(400).json({ ok: false, error: 'Rating must be 0 to 10.' });
+  }
+  const region = typeof (req.body && req.body.region) === 'string' ? req.body.region.trim() : (log.payload.region || '');
+  const payload = { ...log.payload, region, overall };
+  const img = log.payload.photo ? photos.readBase64(log.payload.photo) : null;
+  if (ai.isConfigured() && img) {
+    try {
+      const revised = await ai.revisePhotoAssessment({ imageBase64: img.base64, mediaType: img.mediaType, overall, region });
+      Object.assign(payload, revised); // overall stays the owner's value (revised returns it unchanged)
+    } catch (e) { /* keep the corrected overall, leave the prior note */ }
+  }
+  const row = db.updateLog(id, payload);
+  if (!row) return res.status(404).json({ ok: false });
+  res.json({ ok: true, ...row });
+});
+
 // Most recent events of one type (Meals last-analysis, Skin history).
 app.get('/api/recent', (req, res) => {
   if (!req.query.type) return res.status(400).json({ ok: false });

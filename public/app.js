@@ -415,6 +415,14 @@ function eSeg(name, options, current) {
     '<button aria-pressed="' + (o === current ? 'true' : 'false') + '" onclick="editSeg(this)">' + o + '</button>').join('') + '</div>';
 }
 
+// Open the edit sheet for a log object that may not be in today's feed (e.g. an
+// older episode photo). Caching it under its id lets openEdit/saveEdit reuse it.
+function openEditLog(log) {
+  if (!log) return;
+  todayLogs[log.id] = log;
+  openEdit(log.id);
+}
+
 function openEdit(id) {
   const log = todayLogs[id];
   if (!log) return;
@@ -449,8 +457,12 @@ function openEdit(id) {
         '<p class="meta" style="margin-top:10px;">Allergen flags stay as analyzed. To re-analyze, delete and add a new photo.</p>';
       break;
     case 'photo':
-      html = '<div class="meta" style="margin-bottom:7px;">Area</div><input type="text" class="field" id="editRegion" value="' + escapeHtml(p.region || '') + '">' +
-        '<p class="meta" style="margin-top:10px;">Severity scores stay as graded.</p>';
+      html = '<div style="margin-bottom:10px;"><span class="mini"><span id="editScoreVal">' + (p.overall ?? 5) + '</span><span style="font-size:14px;color:var(--mid);">/10</span></span>' +
+        '<span class="meta" style="margin-left:8px;">overall severity</span></div>' +
+        '<input type="range" id="editScore" min="0" max="10" value="' + (p.overall ?? 5) + '" oninput="document.getElementById(\'editScoreVal\').textContent=this.value">' +
+        '<div class="scaleends"><span>Clear</span><span>Severe</span></div>' +
+        '<div class="meta" style="margin:14px 0 7px;">Area</div><input type="text" class="field" id="editRegion" value="' + escapeHtml(p.region || '') + '">' +
+        '<p class="meta" style="margin-top:10px;">Saving re-checks the photo against your rating and rewrites the observation to match it.</p>';
       break;
     case 'cream':
       html = '<div style="font-weight:500;margin-bottom:4px;">' + escapeHtml(p.name || 'Cream') + '</div>' +
@@ -513,6 +525,22 @@ async function saveEdit() {
   const btn = $('editSaveBtn');
   btn.disabled = true;
   try {
+    // A photo edit re-grades against the corrected rating, so it takes a moment
+    // and rewrites the observation; the score the owner sets is authoritative.
+    if (editingLog.type === 'photo') {
+      btn.textContent = 'Re-grading...';
+      $('editHint').textContent = 'Re-checking the photo against your rating...';
+      const res = await fetch('/api/logs/' + editingLog.id + '/regrade-photo', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ overall: Number($('editScore').value), region: $('editRegion').value.trim() })
+      });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); $('editHint').textContent = d.error || 'Could not re-grade.'; return; }
+      closeSheet('editSheet');
+      await loadToday(false);
+      if (typeof currentEpisode !== 'undefined' && currentEpisode && typeof openEpisode === 'function') openEpisode(currentEpisode.id);
+      toast('Re-graded');
+      return;
+    }
     const res = await fetch('/api/logs/' + editingLog.id, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ payload: editedPayload() })
@@ -522,7 +550,7 @@ async function saveEdit() {
     await loadToday(false);
     toast('Updated');
   } catch (e) { $('editHint').textContent = 'Network error.'; }
-  finally { btn.disabled = false; }
+  finally { btn.disabled = false; btn.textContent = 'Save'; }
 }
 
 async function deleteEntry() {

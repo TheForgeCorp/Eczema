@@ -152,6 +152,44 @@ async function analyzeSkin({ imageBase64, mediaType }) {
   };
 }
 
+// ---------- re-grade a photo against a user-corrected severity ----------
+// Automated grading can over-rate skin that is actually improving. The owner
+// corrects the overall score; we re-anchor the component scores and rewrite the
+// observation so it acknowledges the corrected level, grounded in the same photo.
+const REVISE_SKIN_SYSTEM = [
+  'You previously graded a close-up photo of eczema-affected skin. The person has corrected the overall',
+  'severity to a specific value out of 10, because automated grading can over-rate skin that is actually',
+  'improving. Treat their corrected overall as authoritative and accurate. Re-grade the components redness,',
+  'scaling, and affected area so they are consistent with that corrected overall and with what you can see',
+  'in the photo. Then write one fresh, short observation that acknowledges the corrected severity, for',
+  'example noting clearing, residual signs, or what still stands out at that level. Keep overall equal to',
+  'the value they gave. Do not use em dashes. This is not a diagnosis.'
+].join(' ');
+
+async function revisePhotoAssessment({ imageBase64, mediaType, overall, region }) {
+  const c = getClient();
+  const target = clamp10(overall);
+  const content = [
+    { type: 'image', source: { type: 'base64', media_type: mediaType, data: imageBase64 } },
+    { type: 'text', text: `Corrected overall severity: ${target}/10.${region ? ' Area: ' + region + '.' : ''} Re-grade the components to be consistent with ${target}/10 and write a new observation that acknowledges that level.` }
+  ];
+  const res = await c.messages.create({
+    model: MODEL,
+    max_tokens: 1024,
+    system: REVISE_SKIN_SYSTEM,
+    messages: [{ role: 'user', content }],
+    output_config: { format: { type: 'json_schema', schema: SKIN_SCHEMA } }
+  });
+  const data = jsonFromResponse(res);
+  return {
+    overall: target, // the owner's value is authoritative
+    redness: clamp10(data.redness),
+    scaling: clamp10(data.scaling),
+    area: clamp10(data.area),
+    note: String(data.note || '')
+  };
+}
+
 // ---------- product label extraction ----------
 const CREAM_SCHEMA = {
   type: 'object',
@@ -272,4 +310,4 @@ async function analyzePatterns(summaryText) {
   return jsonFromResponse(res);
 }
 
-module.exports = { isConfigured, analyzeMeal, analyzeSkin, extractProduct, analyzePatterns, ALLERGENS };
+module.exports = { isConfigured, analyzeMeal, analyzeSkin, revisePhotoAssessment, extractProduct, analyzePatterns, ALLERGENS };

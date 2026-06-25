@@ -7,6 +7,7 @@
 let baselineImage = null;
 let progressImage = null;
 let currentEpisode = null;
+let currentEpisodePhotos = [];
 let selectedCream = null;
 
 function bar(label, val) {
@@ -123,6 +124,7 @@ async function openEpisode(id) {
 function backToSkin() { go('skin'); loadEpisodes(); }
 
 function renderEpisodeDetail(ep, photos) {
+  currentEpisodePhotos = photos || [];
   const baselineTs = photos.length ? new Date(photos[0].ts).getTime() : null;
   const header =
     '<div class="card">' +
@@ -158,6 +160,7 @@ function renderEpisodeDetail(ep, photos) {
         '<div class="meta">' + context + '</div></div>' +
         (p.note ? '<p class="meta" style="margin:4px 0 0;">' + escapeHtml(p.note) + '</p>' : '') +
         '<div class="bars">' + bar('Redness', p.redness) + bar('Scaling', p.scaling) + bar('Affected area', p.area) + '</div>' +
+        '<button class="ghost" style="margin-top:6px;" onclick="editEpisodePhoto(' + l.id + ')">Adjust severity</button>' +
         '<button class="ghost" style="margin-top:6px;color:var(--loss);border-color:var(--loss);" onclick="deletePhoto(' + l.id + ')">Delete photo</button>' +
         '</div>';
     }).join('');
@@ -168,6 +171,12 @@ function renderEpisodeDetail(ep, photos) {
     : '';
 
   $('episodeDetail').innerHTML = header + addBtn + timeline;
+}
+
+// Open the shared edit sheet (severity slider) for one episode photo.
+function editEpisodePhoto(id) {
+  const log = (currentEpisodePhotos || []).find((p) => p.id === id);
+  if (log && typeof openEditLog === 'function') openEditLog(log);
 }
 
 async function resolveEpisodeUI(id) {
